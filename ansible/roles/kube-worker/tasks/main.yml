@@ -1,0 +1,27 @@
+- name: Add Kubernetes apt key
+  apt_key:
+    url: https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key
+    state: present
+
+- name: Add Kubernetes repo
+  apt_repository:
+    repo: deb https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /
+    state: present
+
+- name: Install kubeadm, kubelet
+  apt:
+    name:
+      - kubeadm
+      - kubelet
+    state: present
+    update_cache: yes
+
+- name: Hold Kubernetes packages
+  apt:
+    name:
+      - kubeadm
+      - kubelet
+    state: hold
+
+- name: Join Kubernetes cluster
+  command: "{{ hostvars['master'].kube_join_command }}"
