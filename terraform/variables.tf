@@ -9,4 +9,5 @@ variable "vnet_name" {}
 variable "subnet_name" {}
 variable "admin_username" {}
 variable "ssh_public_key_path" {}
-variable "vm_size" {}
+variable "vm_sizew" {}
+variable "vm_sizem" {}
