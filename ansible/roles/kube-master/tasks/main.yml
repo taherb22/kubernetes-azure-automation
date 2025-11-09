@@ -1,27 +1,32 @@
-- name: Add Kubernetes apt key
-  apt_key:
-    url: https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key
-    state: present
+---
+- name: Check if Kubernetes is already initialized
+  stat:
+    path: /etc/kubernetes/admin.conf
+  register: k8s_initialized
 
-- name: Add Kubernetes repo
-  apt_repository:
-    repo: deb https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /
-    state: present
-
-- name: Install kubeadm, kubelet, kubectl
-  apt:
-    name:
-      - kubelet
-      - kubeadm
-      - kubectl
-    state: present
-    update_cache: yes
-
-- name: Hold Kubernetes packages
-  command: apt-mark hold kubelet kubeadm kubectl
-  become: yes
-
-- name: Initialize Kubernetes master
+- name: Initialize Kubernetes Master
   command: kubeadm init --pod-network-cidr=10.244.0.0/16
+  when: not k8s_initialized.stat.exists
+  register: kubeadm_init
+
+- name: Create .kube directory
+  file:
+    path: /home/{{ ansible_user }}/.kube
+    state: directory
+    mode: '0755'
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+
+- name: Copy admin kubeconfig
+  copy:
+    src: /etc/kubernetes/admin.conf
+    dest: /home/{{ ansible_user }}/.kube/config
+    remote_src: yes
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0644'
+
+- name: Save join command to a file
+  shell: kubeadm token create --print-join-command > /tmp/kubeadm_join_cmd.sh
   args:
-    creates: /etc/kubernetes/admin.conf
+    executable: /bin/bash

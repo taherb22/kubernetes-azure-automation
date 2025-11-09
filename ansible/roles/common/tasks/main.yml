@@ -1,40 +1,137 @@
+---
 - name: Update apt cache
   apt:
     update_cache: yes
-    force_apt_get: yes
-
-- name: Install required packages
-  apt:
-    name: ['apt-transport-https', 'ca-certificates', 'curl', 'software-properties-common']
-    state: present
-
-- name: Add Docker GPG key
-  apt_key:
-    url: https://download.docker.com/linux/ubuntu/gpg
-    state: present
-
-- name: Add Docker repo
-  apt_repository:
-    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu jammy stable
-    state: present
-
-- name: Install Docker
-  apt:
-    name: ['docker-ce', 'docker-ce-cli', 'containerd.io']
-    state: present
-
-- name: Ensure Docker service is started
-  systemd:
-    name: docker
-    state: started
-    enabled: yes
+  become: yes
 
 - name: Disable swap
   command: swapoff -a
-  become: true
+  become: yes
 
-- name: Comment swap in /etc/fstab
+- name: Disable swap in fstab
   replace:
     path: /etc/fstab
-    regexp: '^(.*swap.*)$'
-    replace: '# \1'
+    regexp: '^\s*([^#]\S+)\s+swap\s+.*$'
+    replace: '# \1 swap swap defaults 0 0'
+  become: yes
+
+- name: Install dependencies
+  apt:
+    name:
+      - apt-transport-https
+      - curl
+      - gnupg
+      - lsb-release
+      - software-properties-common
+    state: present
+  become: yes
+
+- name: Create keyrings directory
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+  become: yes
+
+- name: Add Kubernetes GPG key
+  shell: |
+    curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+  args:
+    creates: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+  become: yes
+
+- name: Add Kubernetes repo (v1.30)
+  apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /"
+    state: present
+  become: yes
+
+- name: Update apt cache after adding repo
+  apt:
+    update_cache: yes
+  become: yes
+
+- name: Install kubelet, kubeadm, kubectl
+  apt:
+    name:
+      - kubelet
+      - kubeadm
+      - kubectl
+    state: present
+    allow_downgrade: yes
+  become: yes
+
+- name: Hold kube packages to prevent automatic upgrades
+  dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+  loop:
+    - kubelet
+    - kubeadm
+    - kubectl
+  become: yes
+
+- name: Install containerd
+  apt:
+    name: containerd
+    state: present
+  become: yes
+
+- name: Create containerd config directory
+  file:
+    path: /etc/containerd
+    state: directory
+    mode: '0755'
+  become: yes
+
+- name: Configure containerd for Kubernetes
+  shell: |
+    containerd config default > /etc/containerd/config.toml
+    sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
+  args:
+    creates: /etc/containerd/config.toml
+  become: yes
+
+- name: Load kernel modules for containerd
+  modprobe:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - overlay
+    - br_netfilter
+  become: yes
+
+- name: Ensure kernel modules load on boot
+  copy:
+    dest: /etc/modules-load.d/containerd.conf
+    content: |
+      overlay
+      br_netfilter
+  become: yes
+
+- name: Configure sysctl for Kubernetes networking
+  sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+    sysctl_set: yes
+    reload: yes
+  loop:
+    - { name: 'net.bridge.bridge-nf-call-iptables', value: '1' }
+    - { name: 'net.ipv4.ip_forward', value: '1' }
+    - { name: 'net.bridge.bridge-nf-call-ip6tables', value: '1' }
+  become: yes
+
+- name: Restart containerd
+  systemd:
+    name: containerd
+    state: restarted
+    enabled: yes
+  become: yes
+
+- name: Enable and start kubelet
+  systemd:
+    name: kubelet
+    enabled: yes
+    state: started
+  become: yes

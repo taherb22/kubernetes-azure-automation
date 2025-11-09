@@ -1,27 +1,31 @@
-- name: Add Kubernetes apt key
-  apt_key:
-    url: https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key
-    state: present
+---
+- name: Wait for join command file on master
+  wait_for:
+    path: /tmp/kubeadm_join_cmd.sh
+    timeout: 300
+  delegate_to: "{{ groups['masters'][0] }}"
+  run_once: yes
 
-- name: Add Kubernetes repo
-  apt_repository:
-    repo: deb https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /
-    state: present
+- name: Fetch kubeadm join command from master
+  fetch:
+    src: /tmp/kubeadm_join_cmd.sh
+    dest: /tmp/kubeadm_join_cmd.sh
+    flat: yes
+  delegate_to: "{{ groups['masters'][0] }}"
+  run_once: yes
 
-- name: Install kubeadm, kubelet
-  apt:
-    name:
-      - kubeadm
-      - kubelet
-    state: present
-    update_cache: yes
+- name: Copy join command to worker
+  copy:
+    src: /tmp/kubeadm_join_cmd.sh
+    dest: /tmp/kubeadm_join_cmd.sh
+    mode: '0755'
 
-- name: Hold Kubernetes packages
-  apt:
-    name:
-      - kubeadm
-      - kubelet
-    state: hold
+- name: Check if node is already joined
+  stat:
+    path: /etc/kubernetes/kubelet.conf
+  register: kubelet_conf
 
-- name: Join Kubernetes cluster
-  command: "{{ hostvars['master'].kube_join_command }}"
+- name: Run kubeadm join on worker
+  shell: bash /tmp/kubeadm_join_cmd.sh
+  when: not kubelet_conf.stat.exists
+  become: yes
