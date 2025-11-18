@@ -27,15 +27,18 @@ pipeline {
             }
         }
 
-        stage('Azure Login') {
+         stage('Azure Login') {
             steps {
-                echo "Logging in to Azure using Service Principal..."
-                azureServicePrincipal(credentialsId: env.AZURE_CREDENTIALS) {
-                    sh 'az account show'
+                // Use the Azure Service Principal plugin properly
+                azureServicePrincipal(
+                    credentialsId: 'azure cred', // your Jenkins Azure SP credential ID
+                    
+                ) {
+                    echo 'Logged in to Azure successfully'
                 }
             }
         }
-
+        
         stage('Terraform Init') {
             steps {
                 dir(env.TERRAFORM_DIR) {
