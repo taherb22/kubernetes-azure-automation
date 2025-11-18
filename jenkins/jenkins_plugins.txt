@@ -1,0 +1,7 @@
+git:latest
+workflow-aggregator:latest
+credentials-binding:latest
+ssh-agent:latest
+azure-credentials:latest
+docker-workflow:latest
+kubernetes-cli:latest

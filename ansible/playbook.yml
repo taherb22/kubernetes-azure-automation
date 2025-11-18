@@ -13,4 +13,4 @@
 - hosts: workers
   become: yes
   roles:
-    - kube-worker                                  
+    - kube-worker                                    
