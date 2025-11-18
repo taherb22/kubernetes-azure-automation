@@ -1,5 +1,10 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'hashicorp/terraform:latest'
+            args '-u root'
+        }
+    }
 
     environment {
         // Azure Service Principal credentials configured in Jenkins (type: Azure Service Principal)
@@ -7,7 +12,8 @@ pipeline {
         // Terraform working directory
         TERRAFORM_DIR = 'terraform' // replace with your Terraform code path
     }
-    
+
+
    
     
     parameters {
