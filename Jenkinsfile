@@ -8,11 +8,7 @@ pipeline {
         TERRAFORM_DIR = 'terraform' // replace with your Terraform code path
     }
     
-    options {
-        // Keep logs for a longer time if needed
-        timestamps()
-        ansiColor('xterm')
-    }
+   
     
     parameters {
         booleanParam(
@@ -22,7 +18,7 @@ pipeline {
         )
     }
 
-    
+
     stages {
         stage('Checkout') {
             steps {
