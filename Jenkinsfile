@@ -11,30 +11,21 @@ pipeline {
         CLIENT_ID       = credentials('azure-client-id')
         CLIENT_SECRET   = credentials('azure-client-secret')
 
-            
-        
         location            = "francecentral"
         resource_group_name = "k8s"
 
-        
         vnet_name   = "k8s-vnet"
         subnet_name = "k8s-subnet"
 
-        
         admin_username      = "azureuser"
         ssh_public_key_path = "/var/jenkins_home/.ssh/id_rsa.pub"
 
-
-    
-        vm_sizew = "Standard_B1ms" 
-        vm_sizem = "Standard_B2ms"  
+        vm_sizew = "Standard_B1ms"
+        vm_sizem = "Standard_B2ms"
     }
 
     stages {
 
-        /* ===========================
-           Azure Authentication
-           =========================== */
         stage('Azure Login') {
             steps {
                 sh '''
@@ -46,9 +37,6 @@ pipeline {
             }
         }
 
-        /* ===========================
-           Create terraform.tfvars
-           =========================== */
         stage('Generate tfvars') {
             steps {
                 dir('terraform') {
@@ -59,26 +47,23 @@ tenant_id             = "${TENANT_ID}"
 client_id             = "${CLIENT_ID}"
 client_secret         = "${CLIENT_SECRET}"
 
-location              = "${LOCATION}"
-resource_group_name   = "${RESOURCE_GROUP}"
+location              = "${location}"
+resource_group_name   = "${resource_group_name}"
 
-vnet_name             = "${VNET_NAME}"
-subnet_name           = "${SUBNET_NAME}"
+vnet_name             = "${vnet_name}"
+subnet_name           = "${subnet_name}"
 
-admin_username        = "${ADMIN_USERNAME}"
-ssh_public_key_path   = "${SSH_KEY_PATH}"
+admin_username        = "${admin_username}"
+ssh_public_key_path   = "${ssh_public_key_path}"
 
-vm_sizew              = "${VM_SIZEW}"
-vm_sizem              = "${VM_SIZEM}"
+vm_sizew              = "${vm_sizew}"
+vm_sizem              = "${vm_sizem}"
 EOF
                     '''
                 }
             }
         }
 
-        /* ===========================
-           Terraform Init
-           =========================== */
         stage('Terraform Init') {
             steps {
                 dir('terraform') {
@@ -87,9 +72,6 @@ EOF
             }
         }
 
-        /* ===========================
-           Terraform Plan
-           =========================== */
         stage('Terraform Plan') {
             steps {
                 dir('terraform') {
@@ -98,9 +80,6 @@ EOF
             }
         }
 
-        /* ===========================
-           Terraform Apply or Destroy
-           =========================== */
         stage('Apply or Destroy') {
             steps {
                 dir('terraform') {
@@ -118,9 +97,6 @@ EOF
         }
     }
 
-    /* ===========================
-       Cleanup (remove secrets)
-       =========================== */
     post {
         always {
             dir('terraform') {
