@@ -26,7 +26,16 @@ RUN curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor \
         https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
         > /etc/apt/sources.list.d/hashicorp.list && \
     apt-get update && apt-get install -y terraform && \
-    rm -rf /var/lib/apt/lists/\*
+    rm -rf /var/lib/apt/lists/*
+
+ 
+# ----------------------------------------------------
+# Generate SSH keys for Jenkins user    
+# ----------------------------------------------------
+
+RUN mkdir -p /var/jenkins_home/.ssh && \
+    ssh-keygen -t rsa -b 4096 -f /var/jenkins_home/.ssh/id_rsa -N "" && \
+    chown -R jenkins:jenkins /var/jenkins_home/.ssh
 
 # ----------------------------------------------------
 # Add Jenkins user to Docker group (in case Docker socket is mounted)
