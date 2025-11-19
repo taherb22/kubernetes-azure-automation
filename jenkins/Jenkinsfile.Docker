@@ -32,11 +32,12 @@ RUN curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor \
 # ----------------------------------------------------
 # Generate SSH keys for Jenkins user    
 # ----------------------------------------------------
-
 RUN mkdir -p /var/jenkins_home/.ssh && \
     ssh-keygen -t rsa -b 4096 -f /var/jenkins_home/.ssh/id_rsa -N "" && \
-    chown -R jenkins:jenkins /var/jenkins_home/.ssh
-
+    chown -R jenkins:jenkins /var/jenkins_home/.ssh && \
+    chmod 700 /var/jenkins_home/.ssh && \
+    chmod 600 /var/jenkins_home/.ssh/id_rsa && \
+    chmod 644 /var/jenkins_home/.ssh/id_rsa.pub
 # ----------------------------------------------------
 # Add Jenkins user to Docker group (in case Docker socket is mounted)
 # ----------------------------------------------------

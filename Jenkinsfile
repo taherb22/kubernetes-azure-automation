@@ -11,16 +11,23 @@ pipeline {
         CLIENT_ID       = credentials('azure-client-id')
         CLIENT_SECRET   = credentials('azure-client-secret')
 
-        LOCATION        = 'East US'
-        RESOURCE_GROUP  = 'my-rg'
+            
+        
+        location            = "francecentral"
+        resource_group_name = "k8s"
 
-        VNET_NAME       = 'my-vnet'
-        SUBNET_NAME     = 'my-subnet'
-        ADMIN_USERNAME  = 'azureuser'
-        SSH_KEY_PATH    = '/var/jenkins_home/.ssh/id_rsa.pub'
+        
+        vnet_name   = "k8s-vnet"
+        subnet_name = "k8s-subnet"
 
-        VM_SIZEW        = 'Standard_B2s'
-        VM_SIZEM        = 'Standard_B2ms'
+        
+        admin_username      = "azureuser"
+        ssh_public_key_path = "/var/jenkins_home/.ssh/id_rsa.pub"
+
+
+    
+        vm_sizew = "Standard_B1ms" 
+        vm_sizem = "Standard_B2ms"  
     }
 
     stages {
