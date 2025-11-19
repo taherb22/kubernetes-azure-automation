@@ -1,0 +1,36 @@
+FROM jenkins/jenkins:lts
+
+USER root
+
+# Install required dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    gnupg \
+    ca-certificates \
+    apt-transport-https \
+    lsb-release && \
+    rm -rf /var/lib/apt/lists/*
+
+
+# ----------------------------------------------------
+# Install Azure CLI (recommended Microsoft script)
+# ----------------------------------------------------
+RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash
+
+# ----------------------------------------------------
+# Install Terraform (official HashiCorp repository)
+# ----------------------------------------------------
+RUN curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor \
+        -o /usr/share/keyrings/hashicorp-archive-keyring.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] \
+        https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
+        > /etc/apt/sources.list.d/hashicorp.list && \
+    apt-get update && apt-get install -y terraform && \
+    rm -rf /var/lib/apt/lists/\*
+
+# ----------------------------------------------------
+# Add Jenkins user to Docker group (in case Docker socket is mounted)
+# ----------------------------------------------------
+RUN groupadd -f -g 999 docker && usermod -aG docker jenkins
+
+USER jenkins
