@@ -1,16 +1,33 @@
 pipeline {
     agent any
 
+    parameters {
+        booleanParam(name: 'DESTROY', defaultValue: false, description: 'Destroy infrastructure instead of applying.')
+    }
+
     environment {
         SUBSCRIPTION_ID = credentials('azure-subscription-id')
         TENANT_ID       = credentials('azure-tenant-id')
+        CLIENT_ID       = credentials('azure-client-id')
+        CLIENT_SECRET   = credentials('azure-client-secret')
+
         LOCATION        = 'East US'
         RESOURCE_GROUP  = 'my-rg'
-        CLIENT_ID       = credentials('azure-client-id')       // SP App ID
-        CLIENT_SECRET   = credentials('azure-client-secret')   // SP Password
+
+        VNET_NAME       = 'my-vnet'
+        SUBNET_NAME     = 'my-subnet'
+        ADMIN_USERNAME  = 'azureuser'
+        SSH_KEY_PATH    = '/var/jenkins_home/.ssh/id_rsa.pub'
+
+        VM_SIZEW        = 'Standard_B2s'
+        VM_SIZEM        = 'Standard_B2ms'
     }
 
     stages {
+
+        /* ===========================
+           Azure Authentication
+           =========================== */
         stage('Azure Login') {
             steps {
                 sh '''
@@ -22,6 +39,39 @@ pipeline {
             }
         }
 
+        /* ===========================
+           Create terraform.tfvars
+           =========================== */
+        stage('Generate tfvars') {
+            steps {
+                dir('terraform') {
+                    sh '''
+cat > terraform.tfvars <<EOF
+subscription_id       = "${SUBSCRIPTION_ID}"
+tenant_id             = "${TENANT_ID}"
+client_id             = "${CLIENT_ID}"
+client_secret         = "${CLIENT_SECRET}"
+
+location              = "${LOCATION}"
+resource_group_name   = "${RESOURCE_GROUP}"
+
+vnet_name             = "${VNET_NAME}"
+subnet_name           = "${SUBNET_NAME}"
+
+admin_username        = "${ADMIN_USERNAME}"
+ssh_public_key_path   = "${SSH_KEY_PATH}"
+
+vm_sizew              = "${VM_SIZEW}"
+vm_sizem              = "${VM_SIZEM}"
+EOF
+                    '''
+                }
+            }
+        }
+
+        /* ===========================
+           Terraform Init
+           =========================== */
         stage('Terraform Init') {
             steps {
                 dir('terraform') {
@@ -30,33 +80,27 @@ pipeline {
             }
         }
 
+        /* ===========================
+           Terraform Plan
+           =========================== */
         stage('Terraform Plan') {
             steps {
                 dir('terraform') {
-                    sh '''
-                    terraform plan -out=tfplan -input=false \
-                        -var "subscription_id=$SUBSCRIPTION_ID" \
-                        -var "tenant_id=$TENANT_ID" \
-                        -var "location=$LOCATION" \
-                        -var "resource_group_name=$RESOURCE_GROUP"
-                    '''
+                    sh 'terraform plan -out=tfplan -input=false'
                 }
             }
         }
 
-         stage('Terraform Apply/Destroy') {
+        /* ===========================
+           Terraform Apply or Destroy
+           =========================== */
+        stage('Apply or Destroy') {
             steps {
                 dir('terraform') {
                     script {
                         if (params.DESTROY) {
                             echo "Destroying infrastructure..."
-                            sh 'terraform destroy -auto-approve \
-                                -var "subscription_id=$SUBSCRIPTION_ID" \
-                                -var "tenant_id=$TENANT_ID" \
-                                -var "client_id=$CLIENT_ID" \
-                                -var "client_secret=$CLIENT_SECRET" \
-                                -var "location=$LOCATION" \
-                                -var "resource_group_name=$RESOURCE_GROUP"'
+                            sh 'terraform destroy -auto-approve'
                         } else {
                             echo "Applying infrastructure..."
                             sh 'terraform apply -auto-approve tfplan'
@@ -66,5 +110,16 @@ pipeline {
             }
         }
     }
-}
 
+    /* ===========================
+       Cleanup (remove secrets)
+       =========================== */
+    post {
+        always {
+            dir('terraform') {
+                sh 'rm -f terraform.tfvars'
+            }
+            echo "Workspace cleaned."
+        }
+    }
+}
