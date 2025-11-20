@@ -127,7 +127,7 @@ master ansible_host=${master_ip} ansible_user=azureuser ansible_ssh_private_key_
             steps {
                 script {
                     // Run the Ansible Playbook
-                    def playbookResult = sh(script: 'ansible-playbook -i inventory.ini playbook.yml --extra-vars "admin_username=${admin_username} ssh_key_path=${ssh_public_key_path}"', returnStatus: true)
+                    def playbookResult = sh(script: 'ansible-playbook -i inventory.ini ansible/playbook.yml --extra-vars "admin_username=${admin_username} ssh_key_path=${ssh_public_key_path}"', returnStatus: true)
                     
                     // Check if Ansible Playbook run was successful
                     if (playbookResult != 0) {
