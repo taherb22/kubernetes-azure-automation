@@ -8,7 +8,9 @@ RUN apt-get update && apt-get install -y \
     gnupg \
     ca-certificates \
     apt-transport-https \
-    lsb-release && \
+    lsb-release \
+    python3-pip \  # Install pip for Ansible installation
+    ssh-agent && \
     rm -rf /var/lib/apt/lists/*
 
 
@@ -16,6 +18,11 @@ RUN apt-get update && apt-get install -y \
 # Install Azure CLI (recommended Microsoft script)
 # ----------------------------------------------------
 RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash
+
+
+
+
+
 
 # ----------------------------------------------------
 # Install Terraform (official HashiCorp repository)
@@ -28,7 +35,17 @@ RUN curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor \
     apt-get update && apt-get install -y terraform && \
     rm -rf /var/lib/apt/lists/*
 
- 
+
+
+
+# ----------------------------------------------------
+# Install Ansible
+# ----------------------------------------------------
+RUN pip3 install --upgrade pip && \
+    pip3 install ansible
+
+
+
 # ----------------------------------------------------
 # Generate SSH keys for Jenkins user    
 # ----------------------------------------------------
