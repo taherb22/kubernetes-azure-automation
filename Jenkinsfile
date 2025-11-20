@@ -98,41 +98,9 @@ EOF
             }
         }
 
-        stage('Generate Dynamic Inventory') {
-            steps {
-                script {
-                    // Get IP addresses from Terraform outputs
-                    def master_ip = sh(script: 'terraform output -raw master_ip', returnStdout: true).trim()
-                    def worker_ips = sh(script: 'terraform output -raw worker_ips', returnStdout: true).trim()
-
-                    // Generate the inventory file content with dynamic ssh key path
-                    def inventoryContent = """[masters]
-master ansible_host=${master_ip} ansible_user=azureuser ansible_ssh_private_key_file=${ssh_public_key_path}
-
-[workers]
-"""
-                    // Add worker nodes to the inventory with dynamic ssh key path
-                    def workerArray = worker_ips.split("\n")
-                    workerArray.eachWithIndex { ip, index ->
-                        inventoryContent += "worker${index + 1} ansible_host=${ip} ansible_user=azureuser ansible_ssh_private_key_file=${ssh_public_key_path}\n"
-                    }
-
-                    // Write the inventory content to a file
-                    writeFile(file: 'inventory.ini', text: inventoryContent)
-                }
-            }
-        }
-
-        stage('Ansible Playbook Configuration') {
-            steps {
-                script {
-                    // Use the dynamically generated inventory file for the Ansible playbook
-                    sh 'ansible-playbook -i inventory.ini playbook.yml --extra-vars "admin_username=${admin_username} ssh_key_path=${ssh_public_key_path}"'
-                }
-            }
-        }
+ 
+    
     }
-
     post {
         always {
             dir('terraform') {
