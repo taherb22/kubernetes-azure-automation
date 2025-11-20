@@ -131,6 +131,9 @@ master ansible_host=${master_ip} ansible_user=azureuser ansible_ssh_private_key_
                     
                     // Check if Ansible Playbook run was successful
                     if (playbookResult != 0) {
+                        dir('terraform') {
+                            sh 'terraform destroy -auto-approve'
+                        }
                         error "Ansible Playbook failed, triggering destroy..."
                     } else {
                         echo "Ansible playbook executed successfully."
@@ -156,10 +159,7 @@ master ansible_host=${master_ip} ansible_user=azureuser ansible_ssh_private_key_
         failure {
             echo "Pipeline failed. Initiating infrastructure destruction..."
 
-            // Trigger destruction if the pipeline fails (including the Ansible failure case)
-            dir('terraform') {
-                sh 'terraform destroy -auto-approve'
-            }
+           
         }
     }
 }
