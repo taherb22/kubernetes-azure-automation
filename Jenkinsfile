@@ -129,6 +129,7 @@ master ansible_host=${master_ip} ansible_user=azureuser ansible_ssh_private_key_
                     // Run the Ansible Playbook
                     def playbookResult = sh(script: 'ansible-playbook -i inventory.ini ansible/playbook.yml --extra-vars "admin_username=${admin_username} ssh_key_path=${ssh_public_key_path}"', returnStatus: true)
                     
+                    echo "Ansible exit code: ${playbookResult}"
                     // Check if Ansible Playbook run was successful
                     if (playbookResult != 0) {
                         dir('terraform') {
@@ -157,9 +158,7 @@ master ansible_host=${master_ip} ansible_user=azureuser ansible_ssh_private_key_
         }
 
         failure {
-            echo "Pipeline failed. Initiating infrastructure destruction..."
-
-           
+            echo "Pipeline failed."
         }
     }
 }
