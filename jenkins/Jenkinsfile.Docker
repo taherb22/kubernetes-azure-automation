@@ -2,30 +2,27 @@ FROM jenkins/jenkins:lts
 
 USER root
 
-# Install required dependencies
+# ----------------------------------------------------
+# Install dependencies
+# ----------------------------------------------------
 RUN apt-get update && apt-get install -y \
     curl \
     gnupg \
     ca-certificates \
     apt-transport-https \
     lsb-release \
-    python3-pip \  # Install pip for Ansible installation
-    ssh-agent && \
+    python3 \
+    python3-pip \
+    sshpass \
+    openssh-client && \
     rm -rf /var/lib/apt/lists/*
-
-
 # ----------------------------------------------------
-# Install Azure CLI (recommended Microsoft script)
+# Install Azure CLI
 # ----------------------------------------------------
 RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash
 
-
-
-
-
-
 # ----------------------------------------------------
-# Install Terraform (official HashiCorp repository)
+# Install Terraform
 # ----------------------------------------------------
 RUN curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor \
         -o /usr/share/keyrings/hashicorp-archive-keyring.gpg && \
@@ -35,19 +32,12 @@ RUN curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor \
     apt-get update && apt-get install -y terraform && \
     rm -rf /var/lib/apt/lists/*
 
-
-
-
 # ----------------------------------------------------
 # Install Ansible
 # ----------------------------------------------------
-RUN pip3 install --upgrade pip && \
-    pip3 install ansible
-
-
-
+RUN apt-get update && apt-get install -y ansible
 # ----------------------------------------------------
-# Generate SSH keys for Jenkins user    
+# Generate SSH keys for Jenkins user
 # ----------------------------------------------------
 RUN mkdir -p /var/jenkins_home/.ssh && \
     ssh-keygen -t rsa -b 4096 -f /var/jenkins_home/.ssh/id_rsa -N "" && \
@@ -55,8 +45,9 @@ RUN mkdir -p /var/jenkins_home/.ssh && \
     chmod 700 /var/jenkins_home/.ssh && \
     chmod 600 /var/jenkins_home/.ssh/id_rsa && \
     chmod 644 /var/jenkins_home/.ssh/id_rsa.pub
+
 # ----------------------------------------------------
-# Add Jenkins user to Docker group (in case Docker socket is mounted)
+# Add Jenkins user to Docker group
 # ----------------------------------------------------
 RUN groupadd -f -g 999 docker && usermod -aG docker jenkins
 

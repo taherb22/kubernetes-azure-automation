@@ -99,6 +99,9 @@ EOF
         }
 
         stage('Generate Dynamic Inventory') {
+            when {
+                expression { return !params.DESTROY }   // Skip if DESTROY = true
+            }
             steps {
                 script {
                     // Get IP addresses from Terraform outputs
@@ -124,6 +127,9 @@ master ansible_host=${master_ip} ansible_user=azureuser ansible_ssh_private_key_
         }
 
         stage('Ansible Playbook Configuration') {
+            when {
+                expression { return !params.DESTROY }   // Skip if DESTROY = true
+            }
             steps {
                 script {
                     // Run the Ansible Playbook
