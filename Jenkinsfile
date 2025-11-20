@@ -98,9 +98,49 @@ EOF
             }
         }
 
- 
-    
+        stage('Generate Dynamic Inventory') {
+            steps {
+                script {
+                    // Get IP addresses from Terraform outputs
+                    def master_ip = sh(script: 'terraform output -raw master_ip', returnStdout: true).trim()
+                    def worker_ips = sh(script: 'terraform output -raw worker_ips', returnStdout: true).trim()
+
+                    // Generate the inventory file content with dynamic ssh key path
+                    def inventoryContent = """[masters]
+master ansible_host=${master_ip} ansible_user=azureuser ansible_ssh_private_key_file=${ssh_public_key_path}
+
+[workers]
+"""
+                    // Add worker nodes to the inventory with dynamic ssh key path
+                    def workerArray = worker_ips.split("\n")
+                    workerArray.eachWithIndex { ip, index ->
+                        inventoryContent += "worker${index + 1} ansible_host=${ip} ansible_user=azureuser ansible_ssh_private_key_file=${ssh_public_key_path}\n"
+                    }
+
+                    // Write the inventory content to a file
+                    writeFile(file: 'inventory.ini', text: inventoryContent)
+                }
+            }
+        }
+
+        stage('Ansible Playbook Configuration') {
+            steps {
+                script {
+                    // Run the Ansible Playbook
+                    def playbookResult = sh(script: 'ansible-playbook -i inventory.ini playbook.yml --extra-vars "admin_username=${admin_username} ssh_key_path=${ssh_public_key_path}"', returnStatus: true)
+                    
+                    // Check if Ansible Playbook run was successful
+                    if (playbookResult != 0) {
+                        error "Ansible Playbook failed, triggering destroy..."
+                    } else {
+                        echo "Ansible playbook executed successfully."
+                    }
+                }
+            }
+        }
+
     }
+
     post {
         always {
             dir('terraform') {
@@ -114,7 +154,12 @@ EOF
         }
 
         failure {
-            echo "Pipeline failed. Please check the logs."
+            echo "Pipeline failed. Initiating infrastructure destruction..."
+
+            // Trigger destruction if the pipeline fails (including the Ansible failure case)
+            dir('terraform') {
+                sh 'terraform destroy -auto-approve'
+            }
         }
     }
 }
