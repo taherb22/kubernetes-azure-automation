@@ -110,15 +110,17 @@ EOF
                     // Get IP addresses from Terraform outputs
                     def master_ip = sh(script: 'terraform output -raw master_ip', returnStdout: true).trim()
                     def worker_ips_raw = sh(script: 'terraform output -raw worker_ips', returnStdout: true).trim()
-
+                    def ssh_private_key_path = env.ssh_private_key_path
                     // Convert worker output to a clean list (handles ["ip1","ip2"] or multiline)
+                    // Clean worker list safely
                     def worker_ips = worker_ips_raw
-                                .replace("[", "")
-                                .replace("]", "")
-                                .replace("\"", "")
-                                .split(",|\\n")
-                                .collect { it.trim() }
-                                .findAll { it }
+                        .replace("[", "")
+                        .replace("]", "")
+                        .replace("\"", "")
+                        .split(",|\\n")           // split on comma or newline
+                        .collect { it.trim() }
+                        .findAll { it && it != "," } // remove empty or comma-only entries
+
 
                     
                     // Generate the inventory file content with dynamic ssh key path
