@@ -119,8 +119,7 @@ EOF
                     def master_ip       = env.MASTER_IP
                     def worker_ips_raw  = env.WORKER_IPS_RAW
                     def ssh_private_key_path = env.ssh_private_key_path
-
-
+                    def worker_ips = readJSON(text: worker_ips_raw)
                     
                     // Generate the inventory file content with dynamic ssh key path
                     def inventoryContent = """[masters]
