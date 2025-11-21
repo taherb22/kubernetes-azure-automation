@@ -107,19 +107,18 @@ EOF
             }
             steps {
                 script {
-                    // Get IP addresses from Terraform outputs
-                    def master_ip = sh(script: 'terraform output -raw master_ip', returnStdout: true).trim()
-                    def worker_ips_raw = sh(script: 'terraform output -raw worker_ips', returnStdout: true).trim()
+                    dir('terraform') {
+                        def master_ip = sh(script: 'terraform output -raw master_ip', returnStdout: true).trim()
+                        def worker_ips_raw = sh(script: 'terraform output -raw worker_ips', returnStdout: true).trim()
+
+                        // IMPORTANT: Return values to parent script
+                        env.MASTER_IP = master_ip
+                        env.WORKER_IPS_RAW = worker_ips_raw
+                    }
+
+                    def master_ip       = env.MASTER_IP
+                    def worker_ips_raw  = env.WORKER_IPS_RAW
                     def ssh_private_key_path = env.ssh_private_key_path
-                    // Convert worker output to a clean list (handles ["ip1","ip2"] or multiline)
-                    // Clean worker list safely
-                    def worker_ips = worker_ips_raw
-                        .replace("[", "")
-                        .replace("]", "")
-                        .replace("\"", "")
-                        .split(",|\\n")           // split on comma or newline
-                        .collect { it.trim() }
-                        .findAll { it && it != "," } // remove empty or comma-only entries
 
 
                     
