@@ -32,6 +32,17 @@ output "master_public_ip" {
   value       = azurerm_public_ip.pubip["master"].ip_address
 }
 
+
+output "worker_public_ips" {
+  description = "Public IPs of all worker nodes"
+  value = [
+    azurerm_public_ip.pubip["worker1"].ip_address,
+    azurerm_public_ip.pubip["worker2"].ip_address
+  ]
+}
+
+
+
 output "worker1_public_ip" {
   description = "Public IP of worker node 1"
   value       = azurerm_public_ip.pubip["worker1"].ip_address

@@ -108,8 +108,8 @@ EOF
             steps {
                 script {
                     dir('terraform') {
-                        def master_ip = sh(script: 'terraform output -raw master_ip', returnStdout: true).trim()
-                        def worker_ips_raw = sh(script: 'terraform output -raw worker_ips', returnStdout: true).trim()
+                        def master_ip = sh(script: 'terraform output -raw master_public_ip', returnStdout: true).trim()
+                        def worker_ips_raw = sh(script: 'terraform output -raw worker_public_ips', returnStdout: true).trim()
 
                         // IMPORTANT: Return values to parent script
                         env.MASTER_IP = master_ip
