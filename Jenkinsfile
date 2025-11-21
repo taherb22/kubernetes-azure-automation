@@ -139,6 +139,10 @@ master ansible_host=${master_ip} ansible_user=azureuser ansible_ssh_private_key_
 
                     // Write the inventory content to a file
                     writeFile(file: 'inventory.ini', text: inventoryContent)
+                    // Debug: print inventory content to Jenkins console
+                    sh 'echo "===== GENERATED INVENTORY ====="'
+                    sh 'cat inventory.ini'
+                    sh 'echo "================================"'
                 }
             }
         }
