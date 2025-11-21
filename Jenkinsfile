@@ -18,8 +18,11 @@ pipeline {
         subnet_name = "k8s-subnet"
 
         admin_username      = "azureuser"
-        ssh_public_key_path = "/var/jenkins_home/.ssh/id_rsa.pub" // Jenkins SSH public key path (set as environment variable)
+       // SSH KEY PATHS
+        ssh_public_key_path  = "/var/jenkins_home/.ssh/id_rsa.pub"   // for Terraform
+        ssh_private_key_path = "/var/jenkins_home/.ssh/id_rsa"       // for Ansible (IMPORTANT)
 
+        
         vm_sizew = "Standard_B1ms"
         vm_sizem = "Standard_B2ms"
 
@@ -57,7 +60,7 @@ subnet_name           = "${subnet_name}"
 
 admin_username        = "${admin_username}"
 ssh_public_key_path   = "${ssh_public_key_path}"
-
+ssh_private_key_path  = "${ssh_private_key_path}"
 vm_sizew              = "${vm_sizew}"
 vm_sizem              = "${vm_sizem}"
 EOF
@@ -106,18 +109,30 @@ EOF
                 script {
                     // Get IP addresses from Terraform outputs
                     def master_ip = sh(script: 'terraform output -raw master_ip', returnStdout: true).trim()
-                    def worker_ips = sh(script: 'terraform output -raw worker_ips', returnStdout: true).trim()
+                    def worker_ips_raw = sh(script: 'terraform output -raw worker_ips', returnStdout: true).trim()
 
+                    // Convert worker output to a clean list (handles ["ip1","ip2"] or multiline)
+                    def worker_ips = worker_ips_raw
+                                .replace("[", "")
+                                .replace("]", "")
+                                .replace("\"", "")
+                                .split(",|\\n")
+                                .collect { it.trim() }
+                                .findAll { it }
+
+                    
                     // Generate the inventory file content with dynamic ssh key path
                     def inventoryContent = """[masters]
-master ansible_host=${master_ip} ansible_user=azureuser ansible_ssh_private_key_file=${ssh_public_key_path}
+master ansible_host=${master_ip} ansible_user=azureuser ansible_ssh_private_key_file=${ssh_private_key_path}
 
 [workers]
 """
+
+
+                    
                     // Add worker nodes to the inventory with dynamic ssh key path
-                    def workerArray = worker_ips.split("\n")
-                    workerArray.eachWithIndex { ip, index ->
-                        inventoryContent += "worker${index + 1} ansible_host=${ip} ansible_user=azureuser ansible_ssh_private_key_file=${ssh_public_key_path}\n"
+                    worker_ips.eachWithIndex { ip, index ->
+                        inventoryContent += "worker${index + 1} ansible_host=${ip} ansible_user=azureuser ansible_ssh_private_key_file=${ssh_private_key_path}\n"
                     }
 
                     // Write the inventory content to a file
