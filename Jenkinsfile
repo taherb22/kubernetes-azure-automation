@@ -171,6 +171,10 @@ master ansible_host=${master_ip} ansible_user=azureuser ansible_ssh_private_key_
             dir('terraform') {
                 sh 'rm -f terraform.tfvars'  // Clean up the terraform.tfvars file
             }
+            // Cleanup ansible inventory
+            sh 'rm -f inventory.ini'
+            sh 'rm -rf ansible/.ansible'
+            sh 'rm -rf ~/.ansible'
             echo "Workspace cleaned."
         }
 
